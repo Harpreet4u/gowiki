@@ -3,7 +3,6 @@ package main
 
 import (
 	"flag"
-    "fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -18,22 +17,22 @@ type Page struct {
 }
 
 var (
-	addr = flag.Bool("addr", false, "find open address and print to final-port.txt")
-    pages []Page
+	addr  = flag.Bool("addr", false, "find open address and print to final-port.txt")
+	pages []Page
 )
 
 func (p *Page) save() error {
 	filename := p.Title + ".txt"
-    present := false
-    for i := range pages {
-        if pages[i].Title == p.Title {
-            present = true
-            break
-        }
-    }
-    if !present {
-        pages = append(pages, *p)
-    }
+	present := false
+	for i := range pages {
+		if pages[i].Title == p.Title {
+			present = true
+			break
+		}
+	}
+	if !present {
+		pages = append(pages, *p)
+	}
 	return ioutil.WriteFile(filename, p.Body, 0600)
 }
 
@@ -85,10 +84,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 }
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
-    for i := range pages {
-        fmt.Println(i, pages[i].Title)
-    }
-    err := templates.ExecuteTemplate(w, "list.html", pages)
+	err := templates.ExecuteTemplate(w, "list.html", pages)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -109,7 +105,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 
 func main() {
 	flag.Parse()
-    http.HandleFunc("/", listHandler)
+	http.HandleFunc("/", listHandler)
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
