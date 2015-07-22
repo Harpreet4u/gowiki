@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+    "os"
 	"regexp"
 )
 
@@ -22,7 +23,8 @@ var (
 )
 
 func (p *Page) save() error {
-	filename := p.Title + ".txt"
+    os.Mkdir("data", 0777)
+	filename := "data/" + p.Title + ".txt"
 	present := false
 	for i := range pages {
 		if pages[i].Title == p.Title {
@@ -37,7 +39,7 @@ func (p *Page) save() error {
 }
 
 func loadPage(title string) (*Page, error) {
-	filename := title + ".txt"
+	filename := "data/" + title + ".txt"
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
