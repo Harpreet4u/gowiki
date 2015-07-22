@@ -3,6 +3,7 @@ package main
 
 import (
 	"flag"
+    "fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -11,17 +12,28 @@ import (
 	"regexp"
 )
 
-var (
-	addr = flag.Bool("addr", false, "find open address and print to final-port.txt")
-)
-
 type Page struct {
 	Title string
 	Body  []byte
 }
 
+var (
+	addr = flag.Bool("addr", false, "find open address and print to final-port.txt")
+    pages []Page
+)
+
 func (p *Page) save() error {
 	filename := p.Title + ".txt"
+    present := false
+    for i := range pages {
+        if pages[i].Title == p.Title {
+            present = true
+            break
+        }
+    }
+    if !present {
+        pages = append(pages, *p)
+    }
 	return ioutil.WriteFile(filename, p.Body, 0600)
 }
 
@@ -34,7 +46,7 @@ func loadPage(title string) (*Page, error) {
 	return &Page{Title: title, Body: body}, nil
 }
 
-var templates = template.Must(template.ParseFiles("edit.html", "view.html"))
+var templates = template.Must(template.ParseFiles("edit.html", "view.html", "list.html"))
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	err := templates.ExecuteTemplate(w, tmpl+".html", p)
@@ -72,6 +84,16 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 	http.Redirect(w, r, "/view/"+title, http.StatusFound)
 }
 
+func listHandler(w http.ResponseWriter, r *http.Request) {
+    for i := range pages {
+        fmt.Println(i, pages[i].Title)
+    }
+    err := templates.ExecuteTemplate(w, "list.html", pages)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
@@ -87,10 +109,10 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 
 func main() {
 	flag.Parse()
+    http.HandleFunc("/", listHandler)
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
-
 	if *addr {
 		l, err := net.Listen("tcp", "127.0.0.1:0")
 		if err != nil {
